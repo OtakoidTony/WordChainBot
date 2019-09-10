@@ -49,7 +49,8 @@ each_server = {
         "firstLetter": "",
         "firstTurn": True,
         "resetRound": False,
-        "isPlaying": False
+        "isPlaying": False,
+        "error": False
     }
 }
 
@@ -156,22 +157,41 @@ async def on_message(message):
                     this_server["error"] = False
 
                 this_server["firstLetter"] = yourWord[0]
-                if (this_server["firstLetter"] != this_server["lastWord"][-1]) and not checkDueum(this_server["lastWord"][-1], this_server["firstLetter"]):
-                    await channel.send(" [오류] '" + this_server["lastWord"][-1] + "' (으)로 시작하는 단어를 입력하세요.")
-                    this_server["who"] = 'USER'
-                    this_server["error"] = True
-                elif yourWord in hanbangSet:
-                    await channel.send(' [오류] 한방단어는 사용할 수 없습니다.')
-                    this_server["who"] = 'USER'
-                    this_server["error"] = True
-                elif yourWord in this_server["alreadySet"]:
-                    await channel.send(' [오류] 이미 나온 단어입니다.')
-                    this_server["who"] = 'USER'
-                    this_server["error"] = True
-                elif yourWord not in wordDict.get(this_server["firstLetter"], set()):
-                    await channel.send(' [오류] 사전에 없는 단어입니다.')
-                    this_server["who"] = 'USER'
-                    this_server["error"] = True
+                try:
+                    if (this_server["firstLetter"] != this_server["lastWord"][-1]) and not checkDueum(
+                            this_server["lastWord"][-1], this_server["firstLetter"]):
+                        await channel.send(" [오류] '" + this_server["lastWord"][-1] + "' (으)로 시작하는 단어를 입력하세요.")
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord in hanbangSet:
+                        await channel.send(' [오류] 한방단어는 사용할 수 없습니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord in this_server["alreadySet"]:
+                        await channel.send(' [오류] 이미 나온 단어입니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord not in wordDict.get(this_server["firstLetter"], set()):
+                        await channel.send(' [오류] 사전에 없는 단어입니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                except IndexError:
+                    if (this_server["firstLetter"] != this_server["lastWord"][-1]):
+                        await channel.send(" [오류] '" + this_server["lastWord"][-1] + "' (으)로 시작하는 단어를 입력하세요.")
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord in hanbangSet:
+                        await channel.send(' [오류] 한방단어는 사용할 수 없습니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord in this_server["alreadySet"]:
+                        await channel.send(' [오류] 이미 나온 단어입니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord not in wordDict.get(this_server["firstLetter"], set()):
+                        await channel.send(' [오류] 사전에 없는 단어입니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
 
                 if not this_server["error"]:
                     this_server["who"] = 'CPU'
