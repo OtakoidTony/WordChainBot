@@ -1,0 +1,6 @@
+re
+random
+discord==1.0.1
+ujson==1.35
+discord.py==1.2.3
+pip
