@@ -1,7 +1,7 @@
-import re
 import random
 import discord
 import json
+from alliteration import *
 
 client = discord.Client()
 
@@ -63,49 +63,15 @@ def patch_data(dict, null_name, null_data):
     if not (null_name in dict):
         dict[null_name] = null_data
 
-
-def decompositeHangul(hangulLetter):
-    cho_list = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'
-    jung_list = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ'
-    jong_list = ' ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ'
-
-    hangulCode = ord(hangulLetter)
-    cho_index = (hangulCode - 0xAC00) // 21 // 28
-    jung_index = (hangulCode - 0xAC00 - (cho_index * 21 * 28)) // 28
-    jong_index = hangulCode - 0xAC00 - (cho_index * 21 * 28) - (jung_index * 28)
-
-    return (cho_list[cho_index], jung_list[jung_index], jong_list[jong_index])
-
-
-def checkDueum(last_lastWord, first_yourWord):
-    hangulRegex = re.compile("[가-힣]")
-    if not pat.match(last_lastWord) and not pat.match(first_yourWord):
-        return False
-
-    lastWordDecompose = decompositeHangul(last_lastWord)
-    yourWordDecompose = decompositeHangul(first_yourWord)
-
-    if lastWordDecompose[0] in 'ㄴㄹ':
-        if (lastWordDecompose[1] in 'ㅏㅐㅗㅚㅜㅡ') and lastWordDecompose[0] == 'ㄹ':
-            if (yourWordDecompose[1:] == lastWordDecompose[1:]) and yourWordDecompose[0] == 'ㄴ':
-                return True
-            else:
-                return False
-        elif lastWordDecompose[1] in 'ㅑㅕㅛㅠㅣ':
-            if (yourWordDecompose[1:] == lastWordDecompose[1:]) and yourWordDecompose[0] == 'ㅇ':
-                return True
-            else:
-                return False
-    else:
-        return False
-
-
 @client.event
 async def on_message(message):
     global isPlaying, round, win, lose, firstLetter
     global who, lastWord, alreadySet, firstTurn, resetRound
 
     channel = message.channel
+    server_id = message.guild.id
+
+
 
     if message.author.bot:
         return None
@@ -147,24 +113,12 @@ async def on_message(message):
                     "win": 0,
                     "length": 0
                 }
-            else:
-                patch_data(user_card[str(message.author.id)], "length", 0)
 
             with open('user_info.json', 'w', encoding='utf-8') as file:
                 file.write(json.dumps(user_card, ensure_ascii=False, indent=4))
 
             if ('!start' == message.content or '!시작' == message.content) and (not isPlaying):
                 round += 1
-                if not (str(message.author.id) in user_card):
-                    user_card[str(message.author.id)] = {
-                        "user": message.author.name,
-                        "level": 1,
-                        "word": 0,
-                        "win": 0
-                    }
-                    await channel.send(user_card.get(str(message.author.id)))
-                    with open('user_info.json', 'w', encoding='utf-8') as file:
-                        file.write(json.dumps(user_card, ensure_ascii=False, indent=4))
 
                 embed = discord.Embed(title=str(round) + "라운드를 시작합니다. 현재 " + str(win) + "승 " + str(lose) + "패",
                                       description="기권하시려면 `!exit`  또는 `!기권`을 입력해주시기 바랍니다.")
