@@ -44,6 +44,20 @@ round, win, lose = 0, 0, 0
 who, lastWord, firstLetter = "CPU", '', ''
 firstTurn, resetRound, isPlaying = True, False, False
 
+each_server = {
+    "606362634131865602": {
+        "alreadySet": set(),
+        "round": 0,
+        "win": 0,
+        "lose": 0,
+        "who": "CPU",
+        "lastWord": "",
+        "firstLetter": "",
+        "firstTurn": True,
+        "resetRound": False,
+        "isPlaying": False
+    }
+}
 
 def patch_data(dict, null_name, null_data):
     if not (null_name in dict):
