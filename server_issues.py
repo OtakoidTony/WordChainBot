@@ -128,7 +128,7 @@ async def on_message(message):
             if ('!start' == message.content or '!시작' == message.content) and (not this_server["isPlaying"]):
                 this_server["round"] += 1
 
-                embed = discord.Embed(title=str(round) + "라운드를 시작합니다. 현재 " + str(this_server["win"]) + "승 " + str(this_server["lose"]) + "패",
+                embed = discord.Embed(title=str(this_server["round"]) + "라운드를 시작합니다. 현재 " + str(this_server["win"]) + "승 " + str(this_server["lose"]) + "패",
                                       description="기권하시려면 `!exit`  또는 `!기권`을 입력해주시기 바랍니다.")
                 await channel.send("", embed=embed)
 
