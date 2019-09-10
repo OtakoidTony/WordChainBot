@@ -157,6 +157,7 @@ async def on_message(message):
                     this_server["error"] = False
 
                 this_server["firstLetter"] = yourWord[0]
+                this_server["error"] = False
                 try:
                     if (this_server["firstLetter"] != this_server["lastWord"][-1]) and not checkDueum(
                             this_server["lastWord"][-1], this_server["firstLetter"]):
