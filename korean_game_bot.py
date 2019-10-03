@@ -58,6 +58,17 @@ def patch_data(dict, null_name, null_data):
     if not (null_name in dict):
         dict[null_name] = null_data
 
+def get_level_xp(n):
+        return 5*(n**2)+50*n+100
+
+def get_level_from_xp(xp):
+        remaining_xp = int(xp)
+        level = 0
+        while remaining_xp >= Levels._get_level_xp(level):
+            remaining_xp -= Levels._get_level_xp(level)
+            level += 1
+        return level
+
 @client.event
 async def on_message(message):
     channel = message.channel
