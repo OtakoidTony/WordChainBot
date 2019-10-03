@@ -1,7 +1,7 @@
-import re
 import random
 import discord
 import json
+from alliteration import *
 
 client = discord.Client()
 
@@ -19,7 +19,7 @@ pat = re.compile('^[ㄱ-ㅎ가-힣]+$')
 wordDict = dict()
 hanbangSet = set()
 
-for i in sorted([i for i in s.split() if pat.match(i) and len(i) >= 2], key=lambda x:-len(x)):
+for i in sorted([i for i in s.split() if pat.match(i) and len(i) >= 2], key=lambda x: -len(x)):
     if i[0] not in wordDict:
         wordDict[i[0]] = set()
     wordDict[i[0]].add(i)
@@ -33,59 +33,54 @@ for j in delList:
     hanbangSet.add(j)
     wordDict[j[0]].remove(j)
 
+
 @client.event
 async def on_ready():
     print('Korean_Game_Bot Online')
 
-alreadySet = set()
-round, win, lose = 0, 0, 0
-who, lastWord, firstLetter = "CPU", '', ''
-firstTurn, resetRound, isPlaying = True, False, False
+each_server = {
+    "606362634131865602": {
+        "alreadySet": set(),
+        "round": 0,
+        "win": 0,
+        "lose": 0,
+        "who": "CPU",
+        "lastWord": "",
+        "firstLetter": "",
+        "firstTurn": True,
+        "resetRound": False,
+        "isPlaying": False,
+        "error": False
+    }
+}
 
 def patch_data(dict, null_name, null_data):
     if not (null_name in dict):
         dict[null_name] = null_data
 
-def decompositeHangul(hangulLetter):
-    cho_list = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'
-    jung_list = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ'
-    jong_list = ' ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ'
-
-    hangulCode = ord(hangulLetter)
-    cho_index = (hangulCode - 0xAC00) // 21 // 28
-    jung_index = (hangulCode - 0xAC00 - (cho_index * 21 * 28)) // 28
-    jong_index = hangulCode - 0xAC00 -(cho_index * 21 * 28) - (jung_index * 28)
-    
-    return (cho_list[cho_index], jung_list[jung_index], jong_list[jong_index])
-
-def checkDueum(last_lastWord, first_yourWord):
-    hangulRegex = re.compile("[가-힣]")
-    if not pat.match(last_lastWord) and not pat.match(first_yourWord):
-        return False
-
-    lastWordDecompose = decompositeHangul(last_lastWord)
-    yourWordDecompose = decompositeHangul(first_yourWord)
-
-    if lastWordDecompose[0] in 'ㄴㄹ':
-        if (lastWordDecompose[1] in 'ㅏㅐㅗㅚㅜㅡ') and lastWordDecompose[0] == 'ㄹ':
-            if (yourWordDecompose[1:] == lastWordDecompose[1:]) and yourWordDecompose[0] == 'ㄴ':
-                return True
-            else:
-                return False
-        elif lastWordDecompose[1] in 'ㅑㅕㅛㅠㅣ':
-            if (yourWordDecompose[1:] == lastWordDecompose[1:]) and yourWordDecompose[0] == 'ㅇ':
-                return True
-            else:
-                return False
-    else:
-        return False
-
 @client.event
 async def on_message(message):
-    global isPlaying, round, win, lose, firstLetter
-    global who, lastWord, alreadySet, firstTurn, resetRound
-
     channel = message.channel
+    server_id = message.guild.id
+
+    if not (str(server_id) in each_server):
+        each_server[str(server_id)] = {
+            "alreadySet": set(),
+            "round": 0,
+            "win": 0,
+            "lose": 0,
+            "who": "CPU",
+            "lastWord": "",
+            "firstLetter": "",
+            "firstTurn": True,
+            "resetRound": False,
+            "isPlaying": False,
+            "error": False
+        }
+
+    this_server = each_server[str(server_id)]
+
+
 
     if message.author.bot:
         return None
@@ -127,99 +122,109 @@ async def on_message(message):
                     "win": 0,
                     "length": 0
                 }
-            else:
-                patch_data(user_card[str(message.author.id)], "length", 0)
 
             with open('user_info.json', 'w', encoding='utf-8') as file:
                 file.write(json.dumps(user_card, ensure_ascii=False, indent=4))
 
-            if ('!start' == message.content or '!시작' == message.content) and (not isPlaying):
-                round += 1
-                if not (str(message.author.id) in user_card):
-                    user_card[str(message.author.id)] = {
-                        "user": message.author.name,
-                        "level": 1,
-                        "word": 0,
-                        "win": 0
-                    }
-                    await channel.send(user_card.get(str(message.author.id)))
-                    with open('user_info.json', 'w', encoding='utf-8') as file:
-                        file.write(json.dumps(user_card, ensure_ascii=False, indent=4))
+            if ('!start' == message.content or '!시작' == message.content) and (not this_server["isPlaying"]):
+                this_server["round"] += 1
 
-                embed = discord.Embed(title=str(round) + "라운드를 시작합니다. 현재 " + str(win) + "승 " + str(lose) + "패",
+                embed = discord.Embed(title=str(this_server["round"]) + "라운드를 시작합니다. 현재 " + str(this_server["win"]) + "승 " + str(this_server["lose"]) + "패",
                                       description="기권하시려면 `!exit`  또는 `!기권`을 입력해주시기 바랍니다.")
                 await channel.send("", embed=embed)
 
-                lastWord = ''
-                alreadySet = set()
-                firstTurn, resetRound, isPlaying = True, False, True
-                who = 'CPU'
+                this_server["lastWord"] = ''
+                this_server["alreadySet"] = set()
+                this_server["firstTurn"], this_server["resetRound"], this_server["isPlaying"] = True, False, True
+                this_server["who"] = 'CPU'
 
-            if isPlaying and who == 'CPU':
-                if firstTurn:
-                    lastWord = random.choice(list(wordDict[random.choice(list(wordDict.keys()))]))
-                    alreadySet.add(lastWord)
-                    await channel.send(' CPU : ' + lastWord)
-                    who = 'USER'
-                    firstTurn = False
+            if this_server["isPlaying"] and this_server["who"] == 'CPU':
+                if this_server["firstTurn"]:
+                    this_server["lastWord"] = random.choice(list(wordDict[random.choice(list(wordDict.keys()))]))
+                    this_server["alreadySet"].add(this_server["lastWord"])
+                    await channel.send(' CPU : ' + this_server["lastWord"])
+                    this_server["who"] = 'USER'
+                    this_server["firstTurn"] = False
 
-            if isPlaying and who == 'USER' and not message.author.bot and not firstTurn:
+            if this_server["isPlaying"] and this_server["who"] == 'USER' and not message.author.bot and not this_server["firstTurn"]:
                 yourWord = message.content
                 if yourWord == '!exit' or yourWord == '!기권':
                     await channel.send('[결과] 당신은 기권했습니다. CPU의 승리입니다!')
-                    resetRound = True
-                    isPlaying = False
-                    lose += 1
-                    who = 'CPU'
-                error = False
+                    this_server["resetRound"] = True
+                    this_server["isPlaying"] = False
+                    this_server["lose"] += 1
+                    this_server["who"] = 'CPU'
+                    this_server["error"] = False
 
-                firstLetter = yourWord[0]
-                if (firstLetter != lastWord[-1]) and not checkDueum(lastWord[-1], firstLetter):
-                    await channel.send(" [오류] '" + lastWord[-1] + "' (으)로 시작하는 단어를 입력하세요.")
-                    who = 'USER'
-                    error = True
-                elif yourWord in hanbangSet:
-                    await channel.send(' [오류] 한방단어는 사용할 수 없습니다.')
-                    who = 'USER'
-                    error = True
-                elif yourWord in alreadySet:
-                    await channel.send(' [오류] 이미 나온 단어입니다.')
-                    who = 'USER'
-                    error = True
-                elif yourWord not in wordDict.get(firstLetter, set()):
-                    await channel.send(' [오류] 사전에 없는 단어입니다.')
-                    who = 'USER'
-                    error = True
+                this_server["firstLetter"] = yourWord[0]
+                this_server["error"] = False
+                try:
+                    if (this_server["firstLetter"] != this_server["lastWord"][-1]) and not checkDueum(
+                            this_server["lastWord"][-1], this_server["firstLetter"]):
+                        await channel.send(" [오류] '" + this_server["lastWord"][-1] + "' (으)로 시작하는 단어를 입력하세요.")
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord in hanbangSet:
+                        await channel.send(' [오류] 한방단어는 사용할 수 없습니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord in this_server["alreadySet"]:
+                        await channel.send(' [오류] 이미 나온 단어입니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord not in wordDict.get(this_server["firstLetter"], set()):
+                        await channel.send(' [오류] 사전에 없는 단어입니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                except IndexError:
+                    if (this_server["firstLetter"] != this_server["lastWord"][-1]):
+                        await channel.send(" [오류] '" + this_server["lastWord"][-1] + "' (으)로 시작하는 단어를 입력하세요.")
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord in hanbangSet:
+                        await channel.send(' [오류] 한방단어는 사용할 수 없습니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord in this_server["alreadySet"]:
+                        await channel.send(' [오류] 이미 나온 단어입니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
+                    elif yourWord not in wordDict.get(this_server["firstLetter"], set()):
+                        await channel.send(' [오류] 사전에 없는 단어입니다.')
+                        this_server["who"] = 'USER'
+                        this_server["error"] = True
 
-                if not error:
-                    who = 'CPU'
-                    alreadySet.add(yourWord)
-                    lastWord = yourWord
+                if not this_server["error"]:
+                    this_server["who"] = 'CPU'
+                    this_server["alreadySet"].add(yourWord)
+                    this_server["lastWord"] = yourWord
                     user_card[str(message.author.id)]["word"] += 1
                     user_card[str(message.author.id)]["length"] += len(yourWord)
                     with open('user_info.json', 'w', encoding='utf-8') as file:
                         file.write(json.dumps(user_card, ensure_ascii=False, indent=4))
-                    firstLetter = lastWord[-1]
-                    if not list(filter(lambda x: x not in alreadySet, wordDict.get(firstLetter, set()))):
+                    this_server["firstLetter"] = this_server["lastWord"][-1]
+                    if not list(filter(lambda x: x not in this_server["alreadySet"], wordDict.get(this_server["firstLetter"], set()))):
                         # 라운드 종료
                         await channel.send('[결과] CPU가 기권했습니다. 당신의 승리입니다!')
-                        who = 'CPU'
-                        isPlaying = False
-                        win += 1
+                        this_server["who"] = 'CPU'
+                        this_server["isPlaying"] = False
+                        this_server["win"] += 1
+                        this_server["error"] = False
                         user_card[str(message.author.id)]["win"] += 1
                         with open('user_info.json', 'w', encoding='utf-8') as file:
                             file.write(json.dumps(user_card, ensure_ascii=False, indent=4))
                     else:
-                        nextWords = sorted(filter(lambda x: x not in alreadySet, wordDict[firstLetter]),
+                        nextWords = sorted(filter(lambda x: x not in this_server["alreadySet"], wordDict[this_server["firstLetter"]]),
                                            key=lambda x: -len(x))[
                                     :random.randint(20, 50)]
-                        lastWord = nextWords[random.randint(0, random.randrange(0, len(nextWords)))]
-                        alreadySet.add(lastWord)
-                        await channel.send(' CPU : ' + lastWord)
-                        who = 'USER'
+                        this_server["lastWord"] = nextWords[random.randint(0, random.randrange(0, len(nextWords)))]
+                        this_server["alreadySet"].add(this_server["lastWord"])
+                        await channel.send(' CPU : ' + this_server["lastWord"])
+                        this_server["who"] = 'USER'
 
-            if resetRound and not firstTurn:
-                firstTurn, resetRound = True, False
-                who = 'CPU'
+            if this_server["resetRound"] and not this_server["firstTurn"]:
+                this_server["firstTurn"], this_server["resetRound"] = True, False
+                this_server["who"] = 'CPU'
 
 client.run('token')
+
