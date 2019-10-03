@@ -145,6 +145,7 @@ async def on_message(message):
                     await channel.send(' CPU : ' + this_server["lastWord"])
                     this_server["who"] = 'USER'
                     this_server["firstTurn"] = False
+                    return None
 
             if this_server["isPlaying"] and this_server["who"] == 'USER' and not message.author.bot and not this_server["firstTurn"]:
                 yourWord = message.content
@@ -155,6 +156,7 @@ async def on_message(message):
                     this_server["lose"] += 1
                     this_server["who"] = 'CPU'
                     this_server["error"] = False
+                    return None
 
                 this_server["firstLetter"] = yourWord[0]
                 this_server["error"] = False
